@@ -24,10 +24,13 @@ proj(u, v) = {
 
 \\ Gram-Schmidt orthogonalization
 gs(M) = {
-  my(M2);
-  M2 = matconcat([M[,1], M[,2] - proj(M[,1], M[,2])]);
-  for(j=3, #M[1,],
-    M2 = concat(M2, M[,j] - vecsum(vector(j-1, i, proj(M2[,i], M[,j]))))
+  my(M2, v);
+  M2 = matrix(#M[,1], #M[1,]);
+  M2[,1] = M[,1];
+  for(j=2, #M[1,],
+    v = M[,j];
+    for(i=1, j-1, v-=proj(M2[,i], M[,j]));
+    M2[,j] = v;
   );
   M2;
 }
@@ -79,17 +82,19 @@ embed(v, roots) = {
 }
 
 cvpPrep(N) = {
-  my(r2, U, roots, M, M2, T, GM);
-  if(N%2 == 0 && isprimepower(N), \\ N is a power of 2
+  my(r2, U, roots, M0, M, M2, T, GM);
+  if(N == 2^valuation(N,2), \\ N is a power of 2
     r2 = eulerphi(N)/2;
     U = vector(r2-1, i, Mod(x^((1-(2*i+1))/2)*(1 - x^(2*i+1))/(1-x), polcyclo(N)));
     roots = vector(r2, j, exp(Pi*I*(2*j-1)/(2*r2)));
-    M = matconcat(vector(#U, i, embed(U[i],roots))),
+    M0 = vector(#U, i, embed(U[i],roots));
+    M = matrix(#M0[1], #M0, i,j, M0[j][i]),
   if(isprime(N), \\ N is prime
     r2 = eulerphi(N)/2;
     U = vector(r2-1, i, Mod(x^lift(Mod((1-(i+1))/2,N))*(1 - x^(i+1))/(1-x), polcyclo(N)));
     roots = vector(r2, j, exp(2*Pi*I*j/N));
-    M = matconcat(vector(#U, i, embed(U[i],roots))),
+    M0 = vector(#U, i, embed(U[i],roots));
+    M = matrix(#M0[1], #M0, i,j, M0[j][i]),
   error("Cannot handle N=", N)));
   \\ Explicit unit group computation, could be useful for small composite N
   \\M = matconcat(vector(#K.fu, i, embed(K.fu[i],roots)));
@@ -128,7 +133,7 @@ smallGenerator(f, prep, flags=0)={
 
   c1 = embed(f, roots);
   c1 = vector(r2-1, i, c1[i]);
-  c1 -= vecsum(c1)*vector(#c1,i,1/(r2));
+  c1 -= sum(i=1,#c1,c1[i])*vector(#c1,i,1/(r2));
 
   b = babai(c1~, M, GM);
   u = T*b[2];
@@ -140,7 +145,7 @@ smallGenerator(f, prep, flags=0)={
 \\ flags: 1 - print exponent vectors for smallGenerator(r), smallGenerator(f), and smallGenerator(g)
 test(N=512,flags=0) = {
   \\ Call cvpPrep, if prep does not exist or prep[1] != N
-  iferr(prep[1], E, prep=cvpPrep(N));
+  if(type(prep) != "t_VEC", prep=cvpPrep(N));
   if(N != prep[1], prep=cvpPrep(N));
 
   m = eulerphi(N);
