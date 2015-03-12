@@ -114,7 +114,7 @@ cvpPrep(N) = {
 \\ Sample unit with using Gaussian distribution on exponent vector
 randUnit(prep,s=3) = {
   my(R,RU,N,r2,M,GM,roots,U,T);
-  [N, r2, M, GM, roots, U, T] = prep;
+  N = prep[1]; U = prep[6];
   R = vector(#U,i,sampleZ(#U,s,0));
   RU = lift(Mod(prod(i=1, #R, U[i]^R[i]), polcyclo(N)));
 }
@@ -122,15 +122,16 @@ randUnit(prep,s=3) = {
 \\ Attempt CVP in Log unit lattice for target Log(f) - vecavg(Log(f))
 \\ flags: 1 - print recovered exponent vector
 smallGenerator(f, prep, flags=0)={
-  my(c1,o,u,N, r2, M,GM,roots,U,T);
-  [N, r2, M, GM, roots, U, T] = prep;
+  my(c1,b,u,r2,M,GM,roots,U,T);
+  r2 = prep[2]; M = prep[3]; GM = prep[4];
+  roots = prep[5]; U = prep[6]; T = prep[7];
 
   c1 = embed(f, roots);
   c1 = vector(r2-1, i, c1[i]);
   c1 -= vecsum(c1)*vector(#c1,i,1/(r2));
 
-  [o, u] = babai(c1~, M, GM);
-  u = T*u;
+  b = babai(c1~, M, GM);
+  u = T*b[2];
   if(bitand(flags,1),printf("%s\n",u));
 
   f*prod(i=1,#u,U[i]^(-u[i]));
@@ -139,8 +140,9 @@ smallGenerator(f, prep, flags=0)={
 \\ flags: 1 - print exponent vectors for smallGenerator(r), smallGenerator(f), and smallGenerator(g)
 test(N=512,flags=0) = {
   \\ Call cvpPrep, if prep does not exist or prep[1] != N
-  iferr([Np,r2,M,GM,roots,U,T] = prep, E, prep=cvpPrep(N); [Np,r2,M,GM,roots,U,T] = prep);
-  if(N != Np, prep=cvpPrep(N); [Np,r2,M,GM,roots,U,T] = prep);
+  iferr(prep[1], E, prep=cvpPrep(N));
+  if(N != prep[1], prep=cvpPrep(N));
+
   m = eulerphi(N);
 
   s = sqrt(128*m);
